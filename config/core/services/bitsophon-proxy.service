@@ -1,0 +1,34 @@
+[Unit]
+Description=BS Proxy
+#After=etcd.service
+After=docker.service
+Requires=docker.service
+
+[Service]
+Restart=always
+RestartSec=1
+TimeoutStartSec=0
+
+ExecStartPre=-/usr/bin/docker kill bs-proxy
+ExecStartPre=-/usr/bin/docker rm bs-proxy
+ExecStartPre=/usr/bin/docker pull bitsophon/bitsophon-proxy:latest
+
+ExecStart=/bin/bash -c " \
+  /usr/bin/docker run \
+    --name=bs-proxy \
+    -p 80:80 \
+    -e 'NODE_ENV=bitsophon' \
+    -v /home/core/security/certs:/etc/nginx/certs \
+    -v /home/core/security/auth:/etc/nginx/auth \
+    -v /home/core/sites-available:/etc/nginx/sites-available \
+    -v /home/core/wwwlogs:/home/centos/wwwlogs \
+    -v /home/core/www:/home/centos/www \
+    bitsophon/bitsophon-proxy:latest \
+"
+
+#ExecStartPost=/usr/bin/etcdctl set /domains/example.com/%H:%i running
+ExecStop=/usr/bin/docker stop bs-proxy
+#ExecStopPost=/usr/bin/etcdctl rm /domains/example.com/%H:%i
+
+[Install]
+WantedBy=multi-user.target
